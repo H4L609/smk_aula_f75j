@@ -16,6 +16,35 @@
 static volatile bool    scan_due;
 static volatile uint8_t subframes_since_scan;
 
+/*
+ * Horloge approximative en millisecondes (projet AULA F75J : tap/hold).
+ * Chaque tic vaut ~400 us (sous-trame LED ; le balayage de matrice, ~100 us
+ * d'armement + ~320 us de balayage, en est proche). Précision ~10 %, largement
+ * suffisante pour un TAPPING_TERM. Lire avec tick_ms() depuis la boucle
+ * principale.
+ */
+static volatile uint16_t tick_ms_counter;
+static uint8_t           tick_ms_acc; // unités de 100 us
+
+static void tick_advance(void)
+{
+    tick_ms_acc += 4;
+    if (tick_ms_acc >= 10) {
+        tick_ms_acc -= 10;
+        tick_ms_counter++;
+    }
+}
+
+uint16_t tick_ms(void)
+{
+    uint16_t a, b;
+    do { // lecture 16 bits non atomique sur 8051 : relire jusqu'à stabilité
+        a = tick_ms_counter;
+        b = tick_ms_counter;
+    } while (a != b);
+    return a;
+}
+
 void tick_init(void)
 {
     scan_due             = true;
@@ -43,6 +72,8 @@ static void run_led_subframe(void)
 
 void tick_dispatch(void)
 {
+    tick_advance();
+
     if (scan_due) {
         scan_due             = false;
         subframes_since_scan = 0;

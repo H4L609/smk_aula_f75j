@@ -108,6 +108,47 @@ const uint8_t hid_report_desc_keyboard[] = {
 
 const uint8_t hid_report_desc_extra[] = {
     // clang-format off
+#ifdef MOUSE_ENABLE
+    // Souris (projet AULA F75J) : recopiée du descripteur d'usine du F75J (CODE 0x5F7D),
+    // Report ID 3 au lieu de 7 (7 = console de SMK).
+    HID_RI_USAGE_PAGE(8, 0x01),           // Generic Desktop
+    HID_RI_USAGE(8, 0x02),                // Mouse
+    HID_RI_COLLECTION(8, 0x01),           // Application
+        HID_RI_REPORT_ID(8, REPORT_ID_MOUSE),
+        HID_RI_USAGE(8, 0x01),            // Pointer
+        HID_RI_COLLECTION(8, 0x00),       // Physical
+            HID_RI_USAGE_PAGE(8, 0x09),   // Buttons
+            HID_RI_LOGICAL_MINIMUM(8, 0x00),
+            HID_RI_LOGICAL_MAXIMUM(8, 0x01),
+            HID_RI_USAGE_MINIMUM(8, 0x01),
+            HID_RI_USAGE_MAXIMUM(8, 0x05),
+            HID_RI_REPORT_SIZE(8, 1),
+            HID_RI_REPORT_COUNT(8, 5),
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_ABSOLUTE),
+            HID_RI_REPORT_COUNT(8, 3),
+            HID_RI_INPUT(8, HID_IOF_CONSTANT),
+            HID_RI_USAGE_PAGE(8, 0x01),   // Generic Desktop
+            HID_RI_LOGICAL_MINIMUM(16, 0x8000),
+            HID_RI_LOGICAL_MAXIMUM(16, 0x7fff),
+            HID_RI_USAGE(8, 0x30),        // X
+            HID_RI_USAGE(8, 0x31),        // Y
+            HID_RI_REPORT_SIZE(8, 16),
+            HID_RI_REPORT_COUNT(8, 2),
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+            HID_RI_LOGICAL_MINIMUM(8, 0x81),
+            HID_RI_LOGICAL_MAXIMUM(8, 0x7f),
+            HID_RI_USAGE(8, 0x38),        // Wheel
+            HID_RI_REPORT_SIZE(8, 8),
+            HID_RI_REPORT_COUNT(8, 1),
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+            HID_RI_USAGE_PAGE(8, 0x0c),   // Consumer
+            HID_RI_USAGE(16, 0x0238),     // AC Pan
+            HID_RI_REPORT_COUNT(8, 1),
+            HID_RI_INPUT(8, HID_IOF_DATA | HID_IOF_VARIABLE | HID_IOF_RELATIVE),
+        HID_RI_END_COLLECTION(0),
+    HID_RI_END_COLLECTION(0),
+#endif
+
     HID_RI_USAGE_PAGE(8, 0x01),           // Generic Desktop
     HID_RI_USAGE(8, 0x80),                // System Control
     HID_RI_COLLECTION(8, 0x01),           // Application
@@ -467,6 +508,16 @@ void usb_send_extra(__xdata report_extra_t *report)
     }
     usb_hw_ep2_in_send(report->raw, EXTRA_REPORT_SIZE);
 }
+
+#ifdef MOUSE_ENABLE
+void usb_send_mouse(__xdata report_mouse_t *report)
+{
+    if (!usb_is_configured()) {
+        return;
+    }
+    usb_hw_ep2_in_send(report->raw, MOUSE_REPORT_SIZE);
+}
+#endif
 
 void usb_wait_for_enumeration(void)
 {

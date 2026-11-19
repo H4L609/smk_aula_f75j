@@ -7,7 +7,12 @@
 // sense). So ticks alternate between them, and this is where that interleave is
 // decided.
 
+#include <stdint.h>
+
 void tick_init(void);
+
+// Horloge approximative en ms (enroule à 65536), pour le tap/hold.
+uint16_t tick_ms(void);
 
 void tick_dispatch(void);
 

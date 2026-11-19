@@ -12,11 +12,16 @@
 
 #define EXTRA_REPORT_SIZE 3
 
+// Souris (projet AULA F75J) : même disposition que le descripteur d'usine du F75J
+// (boutons 5 bits, X/Y 16 bits signés, molette, molette horizontale).
+#define MOUSE_REPORT_SIZE 8
+
 #define CONSOLE_REPORT_SIZE 32
 
 enum report_id {
     REPORT_ID_SYSTEM   = 1,
     REPORT_ID_CONSUMER = 2,
+    REPORT_ID_MOUSE    = 3, // projet AULA F75J (MOUSE_ENABLE)
     REPORT_ID_ISP      = 5,
     REPORT_ID_NKRO     = 6,
     REPORT_ID_CONSOLE  = 7,
@@ -62,6 +67,18 @@ typedef union {
         uint16_t usage;
     };
 } report_extra_t;
+
+typedef union {
+    uint8_t raw[MOUSE_REPORT_SIZE];
+    struct {
+        uint8_t report_id;
+        uint8_t buttons; // bit 0 = gauche, 1 = droit, 2 = milieu, 3 = précédent, 4 = suivant
+        int16_t x;
+        int16_t y;
+        int8_t  wheel;
+        int8_t  pan;
+    };
+} report_mouse_t;
 
 extern report_keyboard_t keyboard_report;
 extern report_nkro_t     nkro_report;
