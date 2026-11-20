@@ -348,12 +348,10 @@ static void snake_step(uint8_t random_hue)
 }
 
 /*
- * Onde concentrique -- couronnes de CODE 0x2959, une par trame, la teinte
- * avançant de 13 crans par couronne comme le relève la feuille sur 0x746A.
+ * 波紋: 輪を 1 トレームに 1 つずつ光らせる。輪ごとに色相を 13 ずつ進める。
  *
- * Les identifiants valent `colonne * 8 + ligne` ; ceux qui désignent une
- * colonne au-delà de la quinzième viennent d'un modèle plus large et sont
- * écartés par `spark_seed`.
+ * 輪の中身は「配線の列 * 8 + 行」（aula_fx_tables.h、tools/gen_light_tables.py が
+ * キーボードの真ん中からの距離で作ったもの）。
  */
 static void ripple_step(void)
 {
@@ -1063,7 +1061,9 @@ static void led_regen_one(void)
          * Ce dernier était donné ici comme notre invention faute d'en trouver
          * l'écrivain. Il n'y en a pas : c'est un tableau CONSTANT que
          * l'initialiseur C dépose en XDATA 0x0E49 et que 0xACA3 transpose dans
-         * le plan 0x0017. `aula_fx_keywave()` le porte tel quel.
+         * le plan 0x0017. Ici, la phase par touche vient de `aula_fx_keywave()`
+         * （AULA F75J プロジェクトの tools/gen_light_tables.py が、真ん中のまわりの
+         * 角度から作った表）。
          *
          * Chaque touche part de sa phase et avance d'un cran par trame, ce qui
          * revient exactement à `phase_de_la_touche + compteur de trames`. Aucun
@@ -1072,7 +1072,7 @@ static void led_regen_one(void)
         const uint8_t idx = (uint8_t)(aula_fx_keywave(regen_col, regen_row) + led_phase);
 
         if (user_settings.ul_effect >= AULA_FX_COLOR_WHEEL) {
-            aula_fx_palette(idx, rgb); /* la seconde roue d'usine, 128 teintes */
+            aula_fx_palette(idx, rgb); /* グラデーション 128 色（aula_fx_tables.h） */
         } else {
             aula_fx_color(user_settings.ul_effect, rgb);
         }
@@ -1080,7 +1080,7 @@ static void led_regen_one(void)
                      led_scale(rgb[2], gain));
     } else if (user_settings.led_effect == AULA_FX_GAMING) {
         /*
-         * Image statique de CODE 0xCAFC : Échap, A W S D et le pavé fléché.
+         * ゲーミング: Esc、A W S D、矢印だけを光らせる（aula_fx_tables.h の gaming）。
          *
          * Le bleu codé en dur qui était ici reposait sur une lecture fausse de
          * la table -- trois plans de couleur dont seul le bleu serait non nul.
@@ -1147,7 +1147,7 @@ static void led_regen_one(void)
          * 192 entrées de la roue.
          *
          * La colonne passée n'est PAS la colonne électrique mais la colonne
-         * SPATIALE, tirée de la table A d'usine (`CODE 0x2EED`). La géométrie
+         * SPATIALE（aula_fx_render_col() : キーの中心が左から何キー目か）. La géométrie
          * générée suppose une grille uniforme -- `axis_x[col] = col * 17` -- et
          * cette hypothèse est fausse sur la ligne 4, où la colonne électrique 12
          * se trouve entre les colonnes 0 et 1. Sans cette conversion, le

@@ -1,76 +1,12 @@
 /*
- * AULA F75J (JIS) : les tables ci-dessous sont relues dans le dump d'usine du
- * F75J (backup/F75J_firmware.hex du projet), sur 17 colonnes au lieu de 15.
- * Mêmes adresses CODE que le F75 : 0x2959, 0xC500, 0xCAFC, 0x9FEA, 0x2A2E,
- * 0x2AAC. `present` et les 0xFF de `key_id` viennent de la couche de base
- * d'usine (0xCC00) : une position sans keycode n'a pas de touche.
- * Voir docs/firmware-analysis.md du projet AULA F75J.
+ * AULA F75J（JIS）のライトの表と、その読み出し。
+ *
+ * 表はすべて tools/gen_light_tables.py（AULA F75J プロジェクト）が、プロジェクトの
+ * キー配置と数式から作ったもの（aula_fx_tables.h）。出荷時のファームの表は使っていない。
+ * 光り方の動き（どの表をいつ読むか）は layouts/default/indicators.c にある。
  */
 #include "aula_fx.h"
-
-/*
- * Palette secondaire d'usine, CODE 0x2D6D. Recopiée octet pour octet du dump.
- *
- * Elle occupe les 384 octets qui séparent la fin de la roue de 192 teintes
- * (0x2B2A + 576 = 0x2D6A) du début de la carte des couronnes -- deux tables
- * contiguës, ce qui a servi à en fixer les bornes.
- */
-static const __code uint8_t palette[AULA_FX_PALETTE_SIZE][3] = {
-    {  0,  5,255}, {  0, 17,255}, {  0, 29,255}, {  0, 48,255},
-    {  0, 65,255}, {  0, 85,255}, {  0,105,255}, {  0,127,255},
-    {  0,137,255}, {  0,148,255}, {  0,161,255}, {  0,171,255},
-    {  0,182,255}, {  0,192,255}, {  0,202,255}, {  0,211,255},
-    {  0,220,255}, {  0,229,255}, {  0,237,255}, {  0,243,255},
-    {  0,250,255}, {  0,255,255}, {  0,255,250}, {  0,255,246},
-    {  0,255,238}, {  0,255,231}, {  0,255,223}, {  0,255,214},
-    {  0,255,205}, {  0,255,195}, {  0,255,186}, {  0,255,175},
-    {  0,255,165}, {  0,255,153}, {  0,255,143}, {  0,255,130},
-    {  0,255,114}, {  0,255, 93}, {  0,255, 73}, {  0,255, 54},
-    {  0,255, 37}, {  0,255, 21}, {  0,255,  8}, {  0,255,  0},
-    { 11,255,  0}, { 22,255,  0}, { 36,255,  0}, { 52,255,  0},
-    { 70,255,  0}, { 87,255,  0}, {106,255,  0}, {126,255,  0},
-    {136,255,  0}, {144,255,  0}, {152,255,  0}, {159,255,  0},
-    {168,255,  0}, {176,255,  0}, {183,255,  0}, {192,255,  0},
-    {198,255,  0}, {206,255,  0}, {212,255,  0}, {220,255,  0},
-    {225,255,  0}, {231,255,  0}, {237,255,  0}, {243,255,  0},
-    {247,255,  0}, {251,255,  0}, {255,255,  0}, {255,249,  0},
-    {255,242,  0}, {255,236,  0}, {255,225,  0}, {255,215,  0},
-    {255,206,  0}, {255,195,  0}, {255,183,  0}, {255,170,  0},
-    {255,159,  0}, {255,145,  0}, {255,132,  0}, {255,105,  0},
-    {255, 68,  0}, {255, 34,  0}, {255, 10,  0}, {255,  0,  5},
-    {255,  0, 17}, {255,  0, 30}, {255,  0, 50}, {255,  0, 69},
-    {255,  0, 91}, {255,  0,113}, {255,  0,131}, {255,  0,142},
-    {255,  0,155}, {255,  0,165}, {255,  0,177}, {255,  0,189},
-    {255,  0,199}, {255,  0,209}, {255,  0,219}, {255,  0,229},
-    {255,  0,236}, {255,  0,243}, {255,  0,250}, {255,  0,255},
-    {250,  0,255}, {243,  0,255}, {237,  0,255}, {228,  0,255},
-    {220,  0,255}, {209,  0,255}, {200,  0,255}, {189,  0,255},
-    {178,  0,255}, {168,  0,255}, {158,  0,255}, {143,  0,255},
-    {131,  0,255}, {111,  0,255}, { 90,  0,255}, { 69,  0,255},
-    { 50,  0,255}, { 31,  0,255}, { 16,  0,255}, {  5,  0,255},
-};
-
-/*
- * Les sept couleurs fixes, CODE 0xC800.
- *
- * Le firmware d'usine range vingt-et-un octets par effet -- sept triplets -- et
- * les DIX-HUIT effets portent exactement les mêmes vingt-et-un octets. Une seule
- * table de sept suffit donc ; l'indexation par effet du firmware n'apporte rien
- * qu'il n'utilise pas.
- *
- * Ce sont les sept canoniques : les trois primaires, leurs trois mélanges deux à
- * deux, puis le blanc. Le mode 7, lui, ne lit pas cette table -- c'est
- * l'arc-en-ciel, qui prend la roue de `aula_rgb_wheel()`.
- */
-static const __code uint8_t colors[AULA_FX_COLOR_MODES - 1][3] = {
-    {255,   0,   0}, /* rouge   */
-    {  0, 255,   0}, /* vert    */
-    {  0,   0, 255}, /* bleu    */
-    {255, 255,   0}, /* jaune   */
-    {255,   0, 255}, /* magenta */
-    {  0, 255, 255}, /* cyan    */
-    {255, 255, 255}, /* blanc   */
-};
+#include "aula_fx_tables.h"
 
 void aula_fx_color(uint8_t mode, uint8_t out[3])
 {
@@ -90,31 +26,6 @@ void aula_fx_palette(uint8_t index, uint8_t out[3])
     out[2] = palette[i][2];
 }
 
-/*
- * Couronnes de l'onde concentrique, CODE 0x2959.
- *
- * Ce ne sont PAS des distances géométriques : la couronne 8 contient (2,0) et
- * (0,0), que n'importe quelle métrique placerait bien plus près du centre.
- * C'est un ordre de propagation écrit à la main, qui suit la disposition
- * physique des touches -- raison de plus pour le recopier plutôt que de le
- * recalculer.
- *
- * Quelques identifiants désignent des colonnes 15 et 16, qui n'existent pas sur
- * ce clavier : le framebuffer d'usine fait 21 colonnes de large et cette table
- * est manifestement partagée avec un modèle plus grand. L'appelant les écarte.
- */
-static const __code uint8_t rings[AULA_FX_RINGS][AULA_FX_RING_SLOTS] = {
-    {0x3a, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-    {0x39, 0x41, 0x32, 0x42, 0x33, 0x3b, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
-    {0x40, 0x48, 0x31, 0x2a, 0x2b, 0x2c, 0x34, 0x3c, 0x43, 0x4a, 0x49, 0xff, 0xff},
-    {0x38, 0x29, 0x22, 0x23, 0x24, 0x2d, 0x50, 0x51, 0x52, 0x4b, 0x44, 0x3d, 0xff},
-    {0x30, 0x21, 0x1a, 0x1b, 0x1c, 0x58, 0x59, 0x5a, 0x53, 0x4c, 0x45, 0x1d, 0xff},
-    {0x28, 0x19, 0x12, 0x13, 0x14, 0x60, 0x61, 0x62, 0x5b, 0x54, 0x4d, 0x63, 0x55},
-    {0x20, 0x11, 0x0a, 0x0b, 0x0c, 0x15, 0x68, 0x69, 0x71, 0x64, 0x6b, 0x5c, 0x6c},
-    {0x18, 0x09, 0x02, 0x03, 0xff, 0x0d, 0x80, 0x72, 0x73, 0xff, 0x6d, 0x74, 0x65},
-    {0x10, 0x00, 0x01, 0x05, 0x04, 0x82, 0x85, 0x7d, 0x7a, 0x79, 0x75, 0x7b, 0x7c},
-};
-
 uint8_t aula_fx_ring(uint8_t ring, uint8_t slot)
 {
     if (ring >= AULA_FX_RINGS || slot >= AULA_FX_RING_SLOTS) {
@@ -122,69 +33,6 @@ uint8_t aula_fx_ring(uint8_t ring, uint8_t slot)
     }
     return rings[ring][slot];
 }
-
-/*
- * Carte de présence, dérivée de CODE 0xC500 : un bit de ligne à 1 quand la
- * grille porte une touche. Six emplacements sur quatre-vingt-dix n'en ont pas.
- *
- * La table d'usine contient l'identifiant complet de chaque touche ; seul le
- * 0xFF nous intéresse, d'où la réduction à quinze octets. Sa ligne 4 permute
- * les colonnes, exactement comme la ligne 4 de la table 0x2EED -- deux relevés
- * indépendants qui se recoupent sur la même particularité de rangée.
- */
-static const __code uint8_t present[AULA_FX_COLS] = {
-    0x3f, 0x3e, 0x3f, 0x3f, 0x1f, 0x3f, 0x1f, 0x3f, 0x3f, 0x3f, 0x1f, 0x1f, 0x3f, 0x3b, 0x3f, 0x00, 0x02,
-};
-
-/*
- * LA CARTE DE TOUCHES D'USINE -- CODE 0xC500, recopiée telle quelle.
- *
- * Indexée `colonne * 6 + ligne`, elle rend l'identifiant d'usine de la touche,
- * `colonne * 8 + ligne`, ou `0xFF` quand la grille n'en porte aucune. Elle
- * remplace ici DEUX tables que ce fichier dérivait séparément -- un masque de
- * présence et une carte de colonne spatiale -- parce que le dump prouve
- * qu'elles n'en font qu'une :
- *
- *   - `id == 0xFF` <=> pas de touche. Six positions sur quatre-vingt-dix.
- *   - `id >> 3`    == la colonne SPATIALE : vérifié égal à l'inverse de la
- *                     table A (`CODE 0x2EED`) sur les quinze colonnes.
- *   - `id & 7`     == la ligne elle-même, sur toutes les entrées présentes --
- *                     le même résultat que la table B (`CODE 0x2F6B`).
- *
- * Les quatre-vingt-quatre identifiants présents sont deux à deux distincts :
- * c'est une bijection sur les touches réelles.
- *
- * ⚠️ LA TABLE D'USINE FAIT 126 ENTRÉES, PAS 90. Elle décrit une grille de
- * VINGT-ET-UNE colonnes -- même largeur que les tables A et B -- et va jusqu'à
- * l'identifiant `0xA4`, colonne 20. Ce clavier n'en a que quinze ; les six
- * colonnes suivantes appartiennent à un modèle plus large de la même famille.
- * C'est ce que teste le `< 15` du moteur de rendu d'usine, un garde qui ne se
- * déclenche jamais ici. Seules les quinze premières colonnes sont recopiées.
- *
- * La ligne 4 permute : la colonne électrique 12 y porte l'identifiant `0x0C`,
- * soit la colonne spatiale 1, et les colonnes 1 à 11 glissent d'un cran. C'est
- * la place de la touche supplémentaire des dispositions ISO, celle qui suit la
- * touche Maj gauche.
- */
-static const __code uint8_t key_id[AULA_FX_COLS][AULA_FX_ROWS] = {
-    {0x00, 0x01, 0x02, 0x03, 0x04, 0x05}, /* colonne  0 */
-    {0xff, 0x09, 0x0a, 0x0b, 0x0c, 0x0d}, /* colonne  1 */
-    {0x10, 0x11, 0x12, 0x13, 0x14, 0x15}, /* colonne  2 */
-    {0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d}, /* colonne  3 */
-    {0x20, 0x21, 0x22, 0x23, 0x24, 0xff}, /* colonne  4 */
-    {0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d}, /* colonne  5 */
-    {0x30, 0x31, 0x32, 0x33, 0x34, 0xff}, /* colonne  6 */
-    {0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d}, /* colonne  7 */
-    {0x40, 0x41, 0x42, 0x43, 0x44, 0x45}, /* colonne  8 */
-    {0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d}, /* colonne  9 */
-    {0x50, 0x51, 0x52, 0x53, 0x54, 0xff}, /* colonne 10 */
-    {0x58, 0x59, 0x5a, 0x5b, 0x5c, 0xff}, /* colonne 11 */
-    {0x60, 0x61, 0x62, 0x63, 0x64, 0x65}, /* colonne 12 */
-    {0x68, 0x71, 0xff, 0x6b, 0x6c, 0x6d}, /* colonne 13 */
-    {0x70, 0x79, 0x72, 0x73, 0x74, 0x75}, /* colonne 14 */
-    {0xff, 0xff, 0xff, 0xff, 0xff, 0xff}, /* colonne 15 */
-    {0xff, 0x69, 0xff, 0xff, 0xff, 0xff}, /* colonne 16 */
-};
 
 uint8_t aula_fx_key_id(uint8_t col, uint8_t row)
 {
@@ -201,130 +49,10 @@ uint8_t aula_fx_render_col(uint8_t col, uint8_t row)
     return (id == AULA_FX_NO_KEY) ? col : (uint8_t)(id >> 3);
 }
 
-/*
- * Image « gaming », réduite de CODE 0xCAFC.
- *
- * ⚠️ CORRECTION DE PROVENANCE. Ce commentaire disait « plan bleu, les plans
- * rouge et vert sont nuls, l'image d'usine est bleue ». C'est faux : `0xCAFC`
- * n'est pas trois plans de couleur mais **un seul octet par touche**, 126 en
- * tout, indexé `colonne * 6 + ligne`, valant `0xFF` sur les touches allumées et
- * zéro ailleurs. Il n'y a AUCUNE couleur dans cette table -- c'est un masque, et
- * la couleur vient du mode de couleur comme pour tous les autres effets.
- *
- * Les neuf positions non nulles sont les indices 0, 9, 14, 15, 21, 77, 82, 83
- * et 89, soit (0,0) (1,3) (2,2) (2,3) (3,3) (12,5) (13,4) (13,5) (14,5) :
- * Échap, A, W, S, D et les quatre flèches de layouts/default/layout.c. Aucun
- * réglage n'aurait pu faire coïncider neuf positions par hasard -- cette partie
- * de la lecture tenait, et tient toujours.
- *
- * Les quinze octets ci-dessous sont la réduction par colonne de ces 126, et la
- * reconstruction depuis le dump les redonne exactement. Les colonnes 15 à 20 de
- * la table d'usine sont entièrement nulles.
- */
-static const __code uint8_t gaming[AULA_FX_COLS] = {
-    0x01, 0x08, 0x0c, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x30, 0x20, 0x00, 0x00,
-};
-
 uint8_t aula_fx_gaming(uint8_t col)
 {
     return (col < AULA_FX_COLS) ? gaming[col] : 0;
 }
-
-/*
- * Champ de phase par touche de l'effet 15 -- les 90 colonnes utiles des 126
- * octets que l'initialiseur C dépose en XDATA 0x0E49 (données en CODE 0x9FEA).
- *
- * La lecture de la table Keil est auto-validante : ses trois enregistrements
- * font 1, 1 et 126 octets, et le terminateur 0x00 tombe exactement à la fin du
- * troisième, en 0xA068. Aucune place pour un décalage.
- *
- * Rangé ici en [colonne][ligne] -- l'usine le range en [ligne][colonne] avec un
- * pas de 21, et 0xACA3 le transpose au chargement. On transpose une fois pour
- * toutes, à la compilation.
- *
- * LA COUTURE ENTRE LA COLONNE 14 ET LA COLONNE 0 EST NORMALE, ne pas la
- * « corriger ». Le balayage angulaire se referme sur lui-même dans l'espace de
- * 21 colonnes du firmware d'usine, grâce aux six colonnes 15 à 20 (51 51, 4f 4f,
- * 4d 4d ...) qui n'existent pas sur ce clavier. Sur quinze colonnes, la phase
- * saute de 0x03-0x13 à 0x52-0x44 au bouclage -- et le firmware d'usine fait
- * exactement le même saut sur ce même matériel.
- */
-static const __code uint8_t keywave[AULA_FX_COLS][AULA_FX_ROWS] = {
-    {0x52, 0x50, 0x4d, 0x48, 0x45, 0x44}, /* colonne  0 */
-    {0x53, 0x50, 0x4e, 0x47, 0x44, 0x42}, /* colonne  1 */
-    {0x54, 0x51, 0x4e, 0x46, 0x43, 0x40}, /* colonne  2 */
-    {0x55, 0x52, 0x4f, 0x45, 0x42, 0x3e}, /* colonne  3 */
-    {0x57, 0x53, 0x4f, 0x44, 0x40, 0x36}, /* colonne  4 */
-    {0x59, 0x55, 0x50, 0x43, 0x3d, 0x30}, /* colonne  5 */
-    {0x5c, 0x56, 0x52, 0x42, 0x34, 0x29}, /* colonne  6 */
-    {0x62, 0x5f, 0x5a, 0x34, 0x27, 0x1f}, /* colonne  7 */
-    {0x69, 0x6c, 0x7d, 0x17, 0x1b, 0x19}, /* colonne  8 */
-    {0x73, 0x78, 0x06, 0x11, 0x18, 0x17}, /* colonne  9 */
-    {0x78, 0x7f, 0x08, 0x10, 0x16, 0x16}, /* colonne 10 */
-    {0x7c, 0x01, 0x09, 0x0f, 0x13, 0x15}, /* colonne 11 */
-    {0x7f, 0x03, 0x09, 0x0f, 0x13, 0x14}, /* colonne 12 */
-    {0x01, 0x06, 0x0a, 0x0f, 0x12, 0x14}, /* colonne 13 */
-    {0x03, 0x07, 0x0b, 0x0e, 0x12, 0x13}, /* colonne 14 */
-    {0x05, 0x08, 0x0b, 0x0e, 0x12, 0x12}, /* colonne 15 */
-    {0x06, 0x09, 0x0b, 0x0e, 0x11, 0x11}, /* colonne 16 */
-};
-
-/*
- * SCINTILLEMENT -- champs de phase de l'effet d'usine 6, moteur `0x60C9`.
- *
- * Son semeur `0xA791` charge le plan par touche depuis l'une de DEUX tables,
- * choisie par le mode de couleur `[0x011C]`, et les deux sont déjà rangées
- * `colonne * 6 + ligne` : pas de transposition, contrairement à `0x9FEA`.
- *
- *   mode 7, arc-en-ciel  ->  CODE 0x2A2E, valeurs 1 à 191
- *   modes 0 à 6, fixe    ->  CODE 0x2AAC, valeurs 0 à  95
- *
- * Les plages valident les modules que le moteur applique via `0xEDA2` : `0xC0`
- * = 192 = 191 + 1 pour la roue, `0x60` = 96 = 95 + 1 pour la respiration. Le
- * semeur choisit la table dont la plage est exactement celle du module.
- *
- * Les deux dessinent un chevron : lignes 0 à 2 une rampe, lignes 3 à 5 la rampe
- * miroir. Seules les quinze colonnes de ce clavier sont recopiées.
- */
-static const __code uint8_t shimmer_wheel[AULA_FX_COLS][AULA_FX_ROWS] = {
-    {  1,   1,   1, 191, 191, 191}, /* colonne  0 */
-    {  6,   6,   6, 190, 190, 190}, /* colonne  1 */
-    { 11,  11,  11, 188, 188, 188}, /* colonne  2 */
-    { 16,  16,  16, 185, 185, 185}, /* colonne  3 */
-    { 21,  21,  21, 180, 180, 180}, /* colonne  4 */
-    { 26,  26,  26, 175, 175, 175}, /* colonne  5 */
-    { 31,  31,  31, 170, 170, 170}, /* colonne  6 */
-    { 36,  36,  36, 165, 165, 165}, /* colonne  7 */
-    { 41,  41,  41, 160, 160, 160}, /* colonne  8 */
-    { 46,  46,  46, 155, 155, 155}, /* colonne  9 */
-    { 51,  51,  51, 150, 150, 150}, /* colonne 10 */
-    { 56,  56,  56, 145, 145, 145}, /* colonne 11 */
-    { 61,  61,  61, 140, 140, 140}, /* colonne 12 */
-    { 66,  66,  66, 135, 135, 135}, /* colonne 13 */
-    { 71,  71,  71, 130, 130, 130}, /* colonne 14 */
-    { 76,  76,  76, 125, 125, 125}, /* colonne 15 */
-    { 81,  81,  81, 120, 120, 120}, /* colonne 16 */
-};
-
-static const __code uint8_t shimmer_fixed[AULA_FX_COLS][AULA_FX_ROWS] = {
-    {  0,   0,   0,  84,  84,  84}, /* colonne  0 */
-    {  7,   7,   7,  77,  77,  77}, /* colonne  1 */
-    { 14,  14,  14,  70,  70,  70}, /* colonne  2 */
-    { 21,  21,  21,  63,  63,  63}, /* colonne  3 */
-    { 28,  28,  28,  56,  56,  56}, /* colonne  4 */
-    { 35,  35,  35,  49,  49,  49}, /* colonne  5 */
-    { 42,  42,  42,  42,  42,  42}, /* colonne  6 */
-    { 49,  49,  49,  35,  35,  35}, /* colonne  7 */
-    { 56,  56,  56,  28,  28,  28}, /* colonne  8 */
-    { 63,  63,  63,  21,  21,  21}, /* colonne  9 */
-    { 70,  70,  70,  14,  14,  14}, /* colonne 10 */
-    { 77,  77,  77,   7,   7,   7}, /* colonne 11 */
-    { 84,  84,  84,  95,  95,  95}, /* colonne 12 */
-    { 91,  91,  91,  91,  91,  91}, /* colonne 13 */
-    { 95,  95,  95,  84,  84,  84}, /* colonne 14 */
-    {  0,   0,   0,  77,  77,  77}, /* colonne 15 */
-    {  7,   7,   7,  70,  70,  70}, /* colonne 16 */
-};
 
 uint8_t aula_fx_shimmer_phase(uint8_t col, uint8_t row, uint8_t rainbow)
 {
@@ -333,25 +61,6 @@ uint8_t aula_fx_shimmer_phase(uint8_t col, uint8_t row, uint8_t rainbow)
     }
     return rainbow ? shimmer_wheel[col][row] : shimmer_fixed[col][row];
 }
-
-/*
- * Rampe de respiration, CODE 0x29CE, 96 entrées -- lue par `0xA177`, qui
- * applique `composante * rampe[phase] / 255` à la couleur fixe.
- *
- * C'est une respiration symétrique : 22 -> 255 sur quarante-huit pas, puis le
- * retour. Son plancher n'est pas zéro mais 22 : en mode couleur fixe, une touche
- * ne s'éteint jamais tout à fait.
- *
- * Elle se referme sur la table suivante : 0x29CE + 96 = 0x2A2E.
- */
-static const __code uint8_t breath[AULA_FX_BREATH_SIZE] = {
-     22,  24,  27,  30,  33,  36,  39,  42,  45,  49,  53,  57,  61,  65,  69,  73,
-     77,  81,  85,  89,  94,  99, 104, 109, 114, 119, 124, 129, 134, 140, 146, 152,
-    158, 164, 170, 176, 182, 188, 194, 200, 206, 213, 220, 227, 234, 241, 248, 255,
-    255, 248, 241, 234, 227, 220, 213, 206, 200, 194, 188, 182, 176, 170, 164, 158,
-    152, 146, 140, 134, 129, 124, 119, 114, 109, 104,  99,  94,  89,  85,  81,  77,
-     73,  69,  65,  61,  57,  53,  49,  45,  42,  39,  36,  33,  30,  27,  24,  22,
-};
 
 uint8_t aula_fx_breath(uint8_t phase)
 {
@@ -366,22 +75,8 @@ uint8_t aula_fx_keywave(uint8_t col, uint8_t row)
     return keywave[col][row];
 }
 
-/*
- * Générateur pseudo-aléatoire.
- *
- * COMPORTEMENT transcrit, GÉNÉRATEUR substitué, et c'est délibéré. L'usine
- * emploie en 0xA997 un LFSR de Galois sur 32 bits (décalage à droite, masque
- * 0xCC4C4ECE, état en XRAM 0x0F67, réamorcé à 0xA5A5 s'il tombe à zéro), seize
- * tours par appel, suivi d'une division signée en 0x4D52 pour le modulo. Tout
- * cela pour produire « une colonne au hasard » ou « une teinte au hasard ».
- *
- * Reproduire le polynôme ne rendrait pas la même suite de toute façon -- il
- * faudrait aussi la même graine et le même ordre d'appel -- et coûterait de la
- * pile et du temps dans l'ISR. Un xorshift 8 bits donne la même propriété
- * observable pour huit octets de code. Même arbitrage que pour le moteur
- * réactif, où l'on garde une teinte au lieu des trois composantes d'usine.
- */
-static uint8_t rand_state = 0xa5; /* seule chose reprise de la graine d'usine */
+/* 乱数（0〜255）。8 ビットの xorshift。 */
+static uint8_t rand_state = 0x5c;
 
 uint8_t aula_fx_rand(void)
 {

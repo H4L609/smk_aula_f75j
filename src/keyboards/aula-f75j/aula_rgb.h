@@ -66,7 +66,7 @@
 #define AULA_RGB_PHASE_BASE 0xB4u
 #define AULA_RGB_PHASE(channel) (uint16_t)(AULA_RGB_PHASE_BASE + (channel))
 
-/* Roue de teintes d'usine (CODE 0x2B2A), 192 entrées. */
+/* 色の輪（192 色）。中身は aula_rgb_wheel.h（tools/gen_light_tables.py が作る）。 */
 #define AULA_RGB_WHEEL_SIZE 192
 void aula_rgb_wheel(uint8_t index, uint8_t out[3]);
 
